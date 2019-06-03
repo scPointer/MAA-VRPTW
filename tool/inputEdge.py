@@ -10,7 +10,7 @@ class Edges:
     def __init__(self):
         self.dList = list()
 
-    def getdata(self, readName = r'.\input_distance-time.txt'):
+    def get_data(self, readName):
         inputFile = open(readName, 'r')
         inputFile.readline()
         data = inputFile.read()
@@ -18,7 +18,7 @@ class Edges:
         self.dList = [Edge(x) for x in edges_str if x != '']
         return self.dList
     
-    def getEdge(self, i, j):
+    def get_edge(self, i, j):
         if(len(self.dList) == 0):
             raise Exception("Data not found. You should take getdata() first.")
         if(i == j):
@@ -26,3 +26,10 @@ class Edges:
         elif(i > j):
             i, j = j, i
         return self.dList[i * 1100 + j - 1] 
+
+#import time
+#print(time.time())
+def initEdges(readName = r'.\input_distance-time.txt'):
+    edges = Edges()
+    edges.get_data(readName)
+    return edges
