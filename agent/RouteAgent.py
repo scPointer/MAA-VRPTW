@@ -22,6 +22,10 @@ class RouteAgent:
         self.timeof = lambda x,y: self.edges.get_edge(x, y).spend_tm if x!=y else 0
         self.distof = lambda x,y: self.edges.get_edge(x, y).dist if x!=y else 0
 
+    def traversing(self):
+        for i in range(1, len(self.cList) - 1):
+            yield i, self.cList[i][0]
+        
     def check_goods(self, x):
         return self.volume + x.volume <= self.max_volume and self.weight + x.weight <= self.max_weight
 
@@ -65,11 +69,16 @@ class RouteAgent:
         x.set_cond(self, reach_tm)
         #here update info in x
     
-    def check_remove_cost(self, x, pos):
+    def check_remove_cost(self, pos):
         pre = self.cList[pos-1]
+        ths = self.cList[pos]
         nxt = self.cList[pos+1]
-        return self.distof(pre[0], nxt[0]) - self.distof(pre[0], x.id) - self.distof(x.id, nxt[0])
+        return self.distof(pre[0], nxt[0]) - self.distof(pre[0], ths[0]) - self.distof(ths[0], nxt[0])
     
+    def check_before_remove(self, x, info):
+        pos, cost = info
+        return self.cList[pos][0] == x.id and self.check_remove_cost(pos) == cost
+
     def remove(self, x, info):
         pos, cost = info
         self.weight -= x.weight
