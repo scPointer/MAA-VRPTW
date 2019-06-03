@@ -1,31 +1,10 @@
 import sys
 sys.path.append('../')
 from tool import *
-from tool.inputNode import CenterNode, CustomerNode, Nodes
-
-unload_tm = 30
-driving_range = 120000
-charge_tm = 30
-charge_cost = 50
-wait_cost = 24
-depot_open_time = 8.
-unit_trans_cost = 14. / 1000
+from agent.constants import unload_tm
 
 def init():
     pass
-
-class PlannerAgent(CenterNode):
-    pass
-
-class CustomerAgent(CustomerNode):
-    belong_to = None
-    served_tm = None
-    def __init__(self, d):
-        CustomerNode.__init__(self, d.id, d.x, d.y, d.weight, d.volume, d.first_tm, d.last_tm)
-    
-    def set_cond(self, belong_to, served_tm):
-        self.belong_to, self.served_tm = belong_to, served_tm
-
 
 class RouteAgent:
     cList = None
@@ -35,6 +14,8 @@ class RouteAgent:
     tot_dist = 0
     max_volume = 16
     max_weight = 2.5
+    timeof  = None
+    distof = None
     def __init__(self, edges):
         self.cList = [(0, 8*60, 8*60), (0, 24*60, 24*60)]  #8:00-8:00 and 24:00-24:00
         self.edges = edges
@@ -85,7 +66,7 @@ class RouteAgent:
         #here update info in x
     
     def check_remove_cost(self, x, pos):
-        pre = self.cList[pos]
+        pre = self.cList[pos-1]
         nxt = self.cList[pos+1]
         return self.distof(pre[0], nxt[0]) - self.distof(pre[0], x.id) - self.distof(x.id, nxt[0])
     
