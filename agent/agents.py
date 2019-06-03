@@ -3,9 +3,9 @@ sys.path.append('../')
 from tool import *
 from tool.inputNode import CenterNode, CustomerNode, Nodes
 
-unload_tm = 0.5
+unload_tm = 30
 driving_range = 120000
-charge_tm = 0.5
+charge_tm = 30
 charge_cost = 50
 wait_cost = 24
 depot_open_time = 8.
@@ -79,8 +79,8 @@ class RouteAgent:
         self.weight += x.weight
         self.volume += x.volume
         self.tot_dist += cost
-        reach_tm = max(self.cList[pos][2] + self.timeof(self.cList[pos][0], x.id), x.first_tm)
-        self.cList.insert(pos+1, (x.id, reach_tm, reach_tm + unload_tm))
+        reach_tm = max(self.cList[pos-1][2] + self.timeof(self.cList[pos-1][0], x.id), x.first_tm)
+        self.cList.insert(pos, (x.id, reach_tm, reach_tm + unload_tm))
         x.set_cond(self, reach_tm)
         #here update info in x
     

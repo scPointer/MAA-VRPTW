@@ -14,14 +14,24 @@ if __name__ == "__main__":
 
     routes = [RouteAgent(edges)]
     rnow = routes[0]
-    for nd in custAgents:
-        insert_pos, extra_cost = rnow.find_insert_pos(nd)
+
+    for nd in reversed(custAgents):
+        insert_pos, extra_cost = None, None
+        for route in routes:
+            insert_pos, extra_cost = route.find_insert_pos(nd)
+            if(insert_pos != None):
+                route.insert(nd, (insert_pos, extra_cost))
+                break
         if(insert_pos == None):
-            rnow = RouteAgent(edges)
-            routes.append(rnow)
-            insert_pos, extra_cost = rnow.find_insert_pos(nd)
-        # check-before_insert(x, (insert_pos, extra_cost))
-        rnow.insert(nd, (insert_pos, extra_cost))
+            routes.append(RouteAgent(edges))
+            routes[-1].insert(nd, routes[-1].find_insert_pos(nd))
+            
     print("route counts", len(routes))
     print("first route")
     routes[0].print()
+    count = 0
+    for r in routes:
+        count += len(r.cList) - 2
+    print(count)
+    #for r in routes:
+    #    print(len(r.cList), r.volume, r.weight)
