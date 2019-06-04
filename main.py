@@ -16,4 +16,13 @@ if __name__ == "__main__":
     
     planner = PlannerAgent(centNodes[0], custAgents, newRoute)
     planner.get_initial_solution()
-    planner.check_solution()
+    #planner.check_solution()
+    #planner.print_solution(r'.\solution.txt')
+    for i in range(25):
+        planner.init_movePool()
+        planner.p_best_move_selection()
+        if (i % 3 == 0):
+            planner.p_route_optimization()
+        planner.check_solution()
+        
+    planner.print_solution(r'.\sol0.txt')
