@@ -5,4 +5,5 @@ charge_cost = 50
 wait_cost = 24
 depot_open_time = 8.
 unit_trans_cost = 14. / 1000
+vehicle_cost = 300.
 INF = 10000000

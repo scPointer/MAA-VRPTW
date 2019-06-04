@@ -1,6 +1,7 @@
 import sys
 sys.path.append('../')
 from tool.inputNode import CenterNode
+from agent import constants
 from agent.constants import unload_tm, INF
 
 class Operation:
@@ -17,6 +18,7 @@ class PlannerAgent(CenterNode):
     cust_counts = None
 
     tot_dist = None
+    tot_cost = None
     custInfo = None
     insertInfo = None
     originBelong = None
@@ -59,6 +61,10 @@ class PlannerAgent(CenterNode):
                 string += str(nodeid) + ","
             outputFile.write(string[0:-1] + '\n')
 
+        outputFile.write("customer_num, tot_dist, weight, volume\n")
+        for route in self.routes:
+            outputFile.write("%d, %d, %.3f, %.3f\n" % \
+                (len(route.cList)-2 ,route.tot_dist, route.weight, route.volume))
 
     def check_solution(self):
         #print("route counts", len(self.routes))
@@ -68,9 +74,14 @@ class PlannerAgent(CenterNode):
         for r in self.routes:
             count += len(r.cList) - 2
             dist += r.tot_dist
-        #print(count, dist, self.tot_dist)
+        if(count != self.cust_counts):
+            raise Exception("customer loss")
         for route in self.routes:
             route.check_feasibility()
+        print("routes=", len(self.routes))
+        print("tot_dist=", self.tot_dist)
+        self.tot_cost = len(self.routes) * constants.vehicle_cost + self.tot_dist * constants.unit_trans_cost
+        print("tot_cost=", self.tot_cost) 
     #    for r in routes:
     #        print(len(r.cList), r.volume, r.weight)
         """for i in range(20):
@@ -83,8 +94,6 @@ class PlannerAgent(CenterNode):
             print(r0.check_remove_cost(r0.cList.index(info)))"""
     
     def init_movePool(self):
-        print("tot_dist=", self.tot_dist)
-
         cust_len = self.cust_counts + 1
         route_cnt = len(self.routes)
         remove_info = [(None, None)] * cust_len
