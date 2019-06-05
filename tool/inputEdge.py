@@ -7,6 +7,7 @@ class Edge:
             % (self.ID, self.fNode, self.tNode, self.dist, self.spend_tm))
 
 class Edges:
+    dList = None
     def __init__(self):
         self.dList = list()
 
@@ -27,8 +28,6 @@ class Edges:
             i, j = j, i
         return self.dList[i * 1100 + j - 1] 
 
-#import time
-#print(time.time())
 def initEdges(readName = r'.\input_distance-time.txt'):
     edges = Edges()
     edges.get_data(readName)

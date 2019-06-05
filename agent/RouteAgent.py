@@ -1,7 +1,8 @@
 import sys
 sys.path.append('../')
-from tool import *
-from agent.constants import unload_tm, INF
+#from tool import *
+from agent import constants
+from agent.constants import unload_tm, driving_range, INF
 
 def init():
     pass
@@ -9,6 +10,9 @@ def init():
 class RouteAgent:
     cList = None
     edges = None
+    chargeChoice = None
+    charge_pos = None
+    charge_info = None
     volume = 0
     weight = 0
     tot_dist = 0
@@ -16,11 +20,13 @@ class RouteAgent:
     max_weight = 2.5
     max_reverse_cost = 0
     max_shuffle_cost = 0
+    feasible = True
     timeof  = None
     distof = None
-    def __init__(self, edges):
-        self.cList = [(0, 8*60, 8*60), (0, 24*60, 24*60)]  #8:00-8:00 and 24:00-24:00
+    def __init__(self, edges, center, chargeChoice):
+        self.cList = [(0, 8*60, 8*60, center), (0, 24*60, 24*60, center)]  #8:00-8:00 and 24:00-24:00
         self.edges = edges
+        self.chargeChoice = chargeChoice
         self.timeof = lambda x,y: self.edges.get_edge(x, y).spend_tm if x!=y else 0
         self.distof = lambda x,y: self.edges.get_edge(x, y).dist if x!=y else 0
 
@@ -103,6 +109,14 @@ class RouteAgent:
         self.cList.pop(pos)
         x.set_cond(None, None)
     
+    def time_schedule_as_late_as_possible(self, pos):
+        ths = self.cList[pos]
+        nxt = self.cList[pos + 1]
+        reach_tm = nxt[1] - self.timeof(ths[0], nxt[0]) - unload_tm
+        if(pos > 0):
+            reach_tm = min(reach_tm, ths[3].last_tm)
+        self.cList[pos] = (ths[0], reach_tm, reach_tm + unload_tm, ths[3])
+
     def time_schedule_as_early_as_possible(self, begin, end):
         saved_list = self.cList[begin: end]
         failed = False
@@ -192,9 +206,94 @@ class RouteAgent:
             print("(%d at %d) -> " % (nd[0], nd[1]))
         print("route end")
 
+    def output_route(self, outputFile):
+        node_num = len(self.cList) - 2 + (1 if self.charge_pos == None else 0)
+        string = ""
+        if(not self.feasible):
+            string += "INFEASIBLE\n"
+        string += "node num = %d, totdist = %d , weight = %.3f, volume = %.3f, (node, dist to previous node, reach time, leave time) = \n" \
+            % (node_num, self.tot_dist, self.weight, self.volume)
+        
+        for i in range(1, len(self.cList) - 1):
+            ths = self.cList[i]
+            pre = self.cList[i - 1]
+            if(self.charge_pos == i - 1):
+                info = self.charge_info
+                reach_tm = pre[2] + self.timeof(pre[0], info[0])
+                leave_tm = reach_tm + constants.charge_tm
+                string += "(%d,%d,%d,%d)," % (info[0], info[1][0], reach_tm, leave_tm)
+                string += "(%d,%d,%d,%d)," % (ths[0], info[1][1], leave_tm + self.timeof(info[0], ths[0]), ths[2])
+            else:
+                string += "(%d,%d,%d,%d)," % (ths[0], self.distof(pre[0], ths[0]), pre[2] + self.timeof(pre[0], ths[0]), ths[2])
+        
+        if(self.charge_pos == len(self.cList) - 1):
+            info = self.charge_info
+            pre = self.cList[-2]
+            reach_tm = pre[2] + self.timeof(pre[0], info[0])
+            leave_tm = reach_tm + constants.charge_tm
+            string += "(%d,%d,%d,%d)," % (info[0], info[1][0], reach_tm, leave_tm)
+        outputFile.write(string[0:-1] + '\n')
+        
     def check_feasibility(self):
         for i in range(1, len(self.cList) - 1):
-            if(not self.check_route(self.cList[i][3], i, -1, 1)[1]):
-                raise Exception("route infeasible")
-            elif(self.cList[0][0] != 0 or self.cList[-1][0] != 0):
-                raise Exception("illegal")
+            if(self.charge_pos == i - 1):
+                if(self.cList[i - 1][2] + self.charge_info[2] > self.cList[i][1]):
+                    raise Exception("arrive late after charging")
+            else:
+                if(not self.check_route(self.cList[i][3], i, -1, 1)[1]):
+                    raise Exception("route infeasible")
+                elif(self.cList[0][0] != 0 or self.cList[-1][0] != 0):
+                    raise Exception("illegal")
+
+    def get_waiting_cost(self):
+        wait_time = 0
+        for i in range(2, len(self.cList) - 1):
+            pre = self.cList[i - 1]
+            ths = self.cList[i]
+            if(self.charge_pos == i - 1):
+                wait_time += ths[1] - (pre[2] + self.charge_info[2])
+            else:
+                wait_time += ths[1] - (pre[2] + self.timeof(pre[0], ths[0]))
+        return wait_time * constants.wait_cost
+    
+    def init_dist_list(self):
+        lens = len(self.cList)
+        dist_by = [None]
+        pre_dist = [0]
+        flo_dist = [0] * lens
+        for i in range(1, lens):
+            pre = self.cList[i - 1]
+            ths = self.cList[i]
+            dist_by.append(self.distof(pre[0], ths[0]))
+            pre_dist.append(pre_dist[-1] + dist_by[-1])
+        for i in reversed(range(lens - 1)):
+            flo_dist[i] = flo_dist[i + 1] + dist_by[i + 1]
+        return pre_dist, flo_dist
+
+    def choose_charging(self):
+        # take charging into consideration
+        update_dist = 0
+        if(self.tot_dist <= driving_range):
+            return update_dist
+        pre_dist, flo_list = self.init_dist_list()
+        for i in reversed(range(len(self.cList) - 1)):           
+            ths = self.cList[i]
+            nxt = self.cList[i + 1]
+            charge_info = self.chargeChoice(ths[0], nxt[0])
+            dist_l, dist_r = charge_info[1]
+            if(pre_dist[i] + dist_l > driving_range or dist_r + flo_list[i + 1] > driving_range \
+                or ths[2] + charge_info[2] > nxt[1]):
+                self.time_schedule_as_late_as_possible(i)
+            else:
+                self.charge_pos = i
+                self.charge_info = charge_info
+                update_dist = dist_l + dist_r - self.distof(ths[0], nxt[0])
+                #print(ths[2], charge_info[2], nxt[1])
+                break
+        
+        if(self.charge_pos == None):
+            #raise Exception("available charging station not found")
+            self.feasible = False
+        self.tot_dist += update_dist
+        return update_dist
+            

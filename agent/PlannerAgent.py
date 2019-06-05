@@ -56,16 +56,12 @@ class PlannerAgent(CenterNode):
     def print_solution(self, fileName):
         outputFile = open(fileName, 'w')
         for route in self.routes:
-            string = ""
-            for i,nodeid in route.traversing():
-                string += str(nodeid) + ","
-            outputFile.write(string[0:-1] + '\n')
+            route.output_route(outputFile)
 
-        outputFile.write("customer_num, tot_dist, weight, volume\n")
+    def find_charging_station(self):
         for route in self.routes:
-            outputFile.write("%d, %d, %.3f, %.3f\n" % \
-                (len(route.cList)-2 ,route.tot_dist, route.weight, route.volume))
-
+            self.tot_dist += route.choose_charging()
+    
     def check_solution(self):
         #print("route counts", len(self.routes))
         #print("first route")
@@ -80,7 +76,18 @@ class PlannerAgent(CenterNode):
             route.check_feasibility()
         print("routes=", len(self.routes))
         print("tot_dist=", self.tot_dist)
-        self.tot_cost = len(self.routes) * constants.vehicle_cost + self.tot_dist * constants.unit_trans_cost
+        
+        dist_cost = self.tot_dist * constants.unit_trans_cost
+        vehi_cost = len(self.routes) * constants.vehicle_cost
+        wait_cost = 0
+        charging_cost = 0
+        for route in self.routes:
+            wait_cost += route.get_waiting_cost()
+            charging_cost += constants.charge_cost if route.charge_pos != None else 0
+        print("wait_cost=", wait_cost)
+        print("charging_cost=", charging_cost)
+        
+        self.tot_cost = dist_cost + vehi_cost + wait_cost + charging_cost
         print("tot_cost=", self.tot_cost) 
     #    for r in routes:
     #        print(len(r.cList), r.volume, r.weight)

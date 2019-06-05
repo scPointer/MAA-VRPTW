@@ -2,3 +2,5 @@
 *.pyc
 *.xlsx
 *.txt
+*.zip
+!station_choice0.txt
