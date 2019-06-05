@@ -28,7 +28,7 @@ class Edges:
             i, j = j, i
         return self.dList[i * 1100 + j - 1] 
 
-def initEdges(readName = r'.\input_distance-time.txt'):
+def initEdges(readName):
     edges = Edges()
     edges.get_data(readName)
     return edges

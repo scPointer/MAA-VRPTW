@@ -4,10 +4,10 @@ from agent import constants
 from math import atan2
 
 calculate_times = 40
-edgeFile = r'.\tool\input_distance-time.txt'
-nodeFile = r'.\tool\input_node.xlsx'
-initFile = r'.\station_choice0.txt'
-outputFile = r'.\solution6514.txt'
+edgeFile = r'.\data\input_distance-time.txt'
+nodeFile = r'.\data\input_node.xlsx'
+initFile = r'.\data\station_choice0.txt'
+outputFile = r'.\data\solution6514.txt'
 
 def sort_nodes(nodes, x0, y0):
     nodes.sort(key = lambda nd : atan2(nd.y - y0, nd.x - x0))

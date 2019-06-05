@@ -47,5 +47,5 @@ class Nodes:
     def time2int(t):
         return t.hour * 60 + t.minute
 
-def initNodes(readFile = r'.\input_node.xlsx'):
+def initNodes(readFile):
     return Nodes().getdata(readFile)

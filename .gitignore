@@ -3,4 +3,4 @@
 *.xlsx
 *.txt
 *.zip
-!station_choice0.txt
+!/data/station_choice0.txt
