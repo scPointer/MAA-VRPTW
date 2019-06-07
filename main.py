@@ -7,7 +7,7 @@ calculate_times = 40
 edgeFile = r'.\data\input_distance-time.txt'
 nodeFile = r'.\data\input_node.xlsx'
 initFile = r'.\data\station_choice0.txt'
-outputFile = r'.\data\solution6514.txt'
+outputFile = r'.\data\solution6521.txt'
 
 def sort_nodes(nodes, x0, y0):
     nodes.sort(key = lambda nd : atan2(nd.y - y0, nd.x - x0))

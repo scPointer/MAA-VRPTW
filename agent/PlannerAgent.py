@@ -50,6 +50,8 @@ class PlannerAgent(CenterNode):
         
         #afterwork
         #to conform that custAgents[i].id == i
+        #for route in self.routes:
+        #    route.max_dist = 150000
         self.custAgents.sort(key = lambda nd: nd.id)
         self.custAgents.insert(0, None)
     
@@ -61,23 +63,28 @@ class PlannerAgent(CenterNode):
     def find_charging_station(self):
         for route in self.routes:
             self.tot_dist += route.choose_charging()
+            while(route.feasible == False):
+                self.routes.append(self.newRoute())
+                route.route_dividing(self.routes[-1])
+                route.feasible = True
+                route.choose_charging()
     
     def check_solution(self):
         #print("route counts", len(self.routes))
         #print("first route")
         #self.routes[0].print()
         count, dist = 0, 0
-        for r in self.routes:
-            count += len(r.cList) - 2
-            dist += r.tot_dist
+        for route in self.routes:
+            count += len(route.cList) - 2
+            dist += route.tot_dist
         if(count != self.cust_counts):
             raise Exception("customer loss")
-        for route in self.routes:
-            route.check_feasibility()
+        #for route in self.routes:
+         #   route.check_feasibility()
         print("routes=", len(self.routes))
-        print("tot_dist=", self.tot_dist)
+        print("tot_dist=", dist)
         
-        dist_cost = self.tot_dist * constants.unit_trans_cost
+        dist_cost = dist * constants.unit_trans_cost
         vehi_cost = len(self.routes) * constants.vehicle_cost
         wait_cost = 0
         charging_cost = 0
@@ -250,3 +257,4 @@ class PlannerAgent(CenterNode):
     def p_route_optimization(self):
         for route in self.routes:
             self.tot_dist += route.route_optimization()
+            

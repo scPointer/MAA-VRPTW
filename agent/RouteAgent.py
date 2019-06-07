@@ -16,8 +16,10 @@ class RouteAgent:
     volume = 0
     weight = 0
     tot_dist = 0
+    before_charge = None
     max_volume = 16
     max_weight = 2.5
+    max_dist = 999999
     max_reverse_cost = 0
     max_shuffle_cost = 0
     feasible = True
@@ -43,9 +45,23 @@ class RouteAgent:
         reach_tm = max(pre[2] + self.timeof(pre[0], x.id), x.first_tm)
         leave_tm = nxt[1] - self.timeof(x.id, nxt[0])
         if(reach_tm <= x.last_tm and reach_tm + unload_tm <= leave_tm):
-            return ((pos, self.distof(pre[0], x.id) + self.distof(x.id, nxt[0]) - self.distof(pre[0], nxt[0])), True)
+            update_dist = self.distof(pre[0], x.id) + self.distof(x.id, nxt[0]) - self.distof(pre[0], nxt[0])
+            if(self.tot_dist + update_dist <= self.max_dist):
+                return ((pos, update_dist), True)
+            else:
+                return ((None, None), False)
         else:
             return ((None, None), False)
+
+    def check_insert_pos(self, x, pos):
+        insert_pos, extra_cost = None, None
+        if(not self.check_goods(x)):
+            pass
+        else:
+            result = self.check_route(x, pos)
+            if(result[1] and self.tot_dist - self.before_charge + result[0][1] <= driving_range):
+                insert_pos, extra_cost = result[0]
+        return (insert_pos, extra_cost)
 
     def find_insert_pos(self, x):
         insert_pos, extra_cost = None, None
@@ -153,12 +169,12 @@ class RouteAgent:
     def route_reverse(self):
         update_cost = 0
         for i in range(1, len(self.cList) - 2):
-            new_cost = self.reverse_nodes(i, i+1)
+            new_cost = self.reverse_nodes(i, i + 2)
             if(new_cost != None):
                 update_cost += new_cost
 
         for i in range(1, len(self.cList) - 3):
-            new_cost = self.reverse_nodes(i, i+2)
+            new_cost = self.reverse_nodes(i, i + 3)
             if(new_cost != None):
                 update_cost += new_cost
         self.tot_dist += update_cost
@@ -211,8 +227,8 @@ class RouteAgent:
         string = ""
         if(not self.feasible):
             string += "INFEASIBLE\n"
-        string += "node num = %d, totdist = %d , weight = %.3f, volume = %.3f, (node, dist to previous node, reach time, leave time) = \n" \
-            % (node_num, self.tot_dist, self.weight, self.volume)
+        string += "totdist = %d , weight = %.3f, volume = %.3f, (node, dist to previous node, reach time, leave time) = \n" \
+            % (self.tot_dist, self.weight, self.volume)
         
         for i in range(1, len(self.cList) - 1):
             ths = self.cList[i]
@@ -296,4 +312,63 @@ class RouteAgent:
             self.feasible = False
         self.tot_dist += update_dist
         return update_dist
-            
+    
+    def pop_to(self, pos, newR):
+        ths = self.cList[pos]
+        new_pos = len(newR.cList) - 1
+        info = newR.check_insert_pos(ths[3], new_pos)
+        if(info[0] != None):
+            x = ths[3]
+            cost = self.check_remove_cost(pos)
+            self.remove(x, (pos, cost))
+            newR.insert(x, info)
+            return True
+        else:
+            return False
+
+    def route_dividing(self, newR):
+        self.time_schedule_as_early_as_possible(1, 2)
+
+        first_nd = self.cList[1][3]
+        cost = self.check_remove_cost(1)
+        self.remove(first_nd, (1, cost))
+
+        newR.insert(first_nd, newR.find_insert_pos(first_nd))
+        for pos in range(1, len(self.cList) - 1):
+            ths = self.cList[pos]
+            x = ths[3]
+            charge_info = self.chargeChoice(first_nd.id, ths[0])
+            if(newR.cList[1][2] + charge_info[2] <= x.last_tm and newR.check_goods(x)):
+                reach_tm = max(newR.cList[1][2] + charge_info[2], x.first_tm)
+                leave_tm = reach_tm + unload_tm
+                newR.weight += x.weight
+                newR.volume += x.volume
+                newR.tot_dist += charge_info[1][0] + charge_info[1][1] \
+                    + newR.distof(ths[0], newR.cList[2][0]) - newR.distof(newR.cList[1][0], newR.cList[2][0])
+                
+                cost = self.check_remove_cost(pos)
+                self.remove(x, (pos, cost))
+                newR.cList.insert(2, (x.id, reach_tm, leave_tm, x))
+                newR.before_charge = newR.distof(newR.cList[1][0], newR.cList[0][0]) + charge_info[1][0]
+                newR.charge_pos = 1
+                newR.charge_info = charge_info
+                x.set_cond(newR, reach_tm)
+                break
+        
+        if(len(newR.cList) == 3):
+            charge_info = newR.chargeChoice(newR.cList[1][0], newR.cList[2][0])
+            newR.tot_dist += charge_info[1][0] + charge_info[1][1]
+            newR.charge_pos = 1
+            newR.charge_info = charge_info
+        else:
+            ended = False
+            count = 0
+            for pos in range(1, len(self.cList) - 1):
+                if(ended or pos >= len(self.cList) - 1):
+                    break
+                while(self.pop_to(pos, newR)):
+                    count += 1
+                    if(count >=3 or pos >= len(self.cList) - 1):
+                        ended = True
+                        break
+                
