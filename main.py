@@ -3,7 +3,7 @@ from agent import PlannerAgent, CustomerAgent, RouteAgent
 from agent import constants
 from math import atan2
 
-calculate_times = 40
+calculate_times = 30
 edgeFile = r'.\data\input_distance-time.txt'
 nodeFile = r'.\data\input_node.xlsx'
 initFile = r'.\data\station_choice0.txt'
@@ -19,7 +19,7 @@ def calculate():
 
     sort_nodes(custNodes, centNodes[0].x, centNodes[0].y)
     custAgents = [CustomerAgent(nd) for nd in custNodes]
-    newRoute = lambda : RouteAgent(edges, centNodes[0], chargeChoice)
+    newRoute = lambda vehi_info: RouteAgent(edges, centNodes[0], chargeChoice, vehi_info)
     
     planner = PlannerAgent(centNodes[0], custAgents, newRoute)
     planner.get_initial_solution()

@@ -17,18 +17,20 @@ class RouteAgent:
     weight = 0
     tot_dist = 0
     before_charge = None
-    max_volume = 16
-    max_weight = 2.5
+    max_volume = None
+    max_weight = None
+    unit_trans_cost = None
     max_dist = 999999
     max_reverse_cost = 0
     max_shuffle_cost = 0
     feasible = True
     timeof  = None
     distof = None
-    def __init__(self, edges, center, chargeChoice):
+    def __init__(self, edges, center, chargeChoice, vehi_info):
         self.cList = [(0, 8*60, 8*60, center), (0, 24*60, 24*60, center)]  #8:00-8:00 and 24:00-24:00
         self.edges = edges
         self.chargeChoice = chargeChoice
+        self.max_volume, self.max_weight, self.unit_trans_cost = vehi_info
         self.timeof = lambda x,y: self.edges.get_edge(x, y).spend_tm if x!=y else 0
         self.distof = lambda x,y: self.edges.get_edge(x, y).dist if x!=y else 0
 

@@ -2,7 +2,7 @@ import sys
 sys.path.append('../')
 from tool.inputNode import CenterNode
 from agent import constants
-from agent.constants import unload_tm, INF
+from agent.constants import unload_tm, INF, iveco_info, truck_info
 
 class Operation:
     def __init__(self, op_type, id, opr):
@@ -28,7 +28,7 @@ class PlannerAgent(CenterNode):
         self.custAgents = custAgents
         
         self.newRoute = newRoute
-        self.routes = [self.newRoute()]
+        self.routes = [self.newRoute(truck_info)]
         
         self.cust_counts = len(self.custAgents)
         self.tot_dist = 0
@@ -43,8 +43,12 @@ class PlannerAgent(CenterNode):
                     self.tot_dist += extra_cost
                     break
             if(insert_pos == None):
-                self.routes.append(self.newRoute())
+                self.routes.append(self.newRoute(iveco_info))
                 insert_pos, extra_cost = self.routes[-1].find_insert_pos(nd)
+                if(insert_pos == None):
+                    self.routes.pop()
+                    self.routes.append(self.newRoute(truck_info))
+                    insert_pos, extra_cost = self.routes[-1].find_insert_pos(nd)
                 self.routes[-1].insert(nd, (insert_pos, extra_cost))
                 self.tot_dist += extra_cost
         
@@ -64,7 +68,7 @@ class PlannerAgent(CenterNode):
         for route in self.routes:
             self.tot_dist += route.choose_charging()
             while(route.feasible == False):
-                self.routes.append(self.newRoute())
+                self.routes.append(self.newRoute(truck_info))
                 route.route_dividing(self.routes[-1])
                 route.feasible = True
                 route.choose_charging()
@@ -73,10 +77,11 @@ class PlannerAgent(CenterNode):
         #print("route counts", len(self.routes))
         #print("first route")
         #self.routes[0].print()
-        count, dist = 0, 0
+        count, dist, dist_cost = 0, 0, 0
         for route in self.routes:
             count += len(route.cList) - 2
             dist += route.tot_dist
+            dist_cost += route.tot_dist * route.unit_trans_cost
         if(count != self.cust_counts):
             raise Exception("customer loss")
         #for route in self.routes:
@@ -84,7 +89,6 @@ class PlannerAgent(CenterNode):
         print("routes=", len(self.routes))
         print("tot_dist=", dist)
         
-        dist_cost = dist * constants.unit_trans_cost
         vehi_cost = len(self.routes) * constants.vehicle_cost
         wait_cost = 0
         charging_cost = 0
