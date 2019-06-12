@@ -2,7 +2,7 @@ import sys
 sys.path.append('../')
 #from tool import *
 from agent import constants
-from agent.constants import unload_tm, driving_range, INF
+from agent.constants import unload_tm, INF
 
 def init():
     pass
@@ -16,10 +16,12 @@ class RouteAgent:
     volume = 0
     weight = 0
     tot_dist = 0
+
     before_charge = None
     max_volume = None
     max_weight = None
     unit_trans_cost = None
+    driving_range = None
     max_dist = 999999
     max_reverse_cost = 0
     max_shuffle_cost = 0
@@ -30,13 +32,16 @@ class RouteAgent:
         self.cList = [(0, 8*60, 8*60, center), (0, 24*60, 24*60, center)]  #8:00-8:00 and 24:00-24:00
         self.edges = edges
         self.chargeChoice = chargeChoice
-        self.max_volume, self.max_weight, self.unit_trans_cost = vehi_info
+        self.max_volume, self.max_weight, self.unit_trans_cost, self.driving_range = vehi_info
         self.timeof = lambda x,y: self.edges.get_edge(x, y).spend_tm if x!=y else 0
         self.distof = lambda x,y: self.edges.get_edge(x, y).dist if x!=y else 0
 
     def traversing(self):
         for i in range(1, len(self.cList) - 1):
             yield i, self.cList[i][0]
+
+    def update(self, vehi_info):
+        self.max_volume, self.max_weight, self.unit_trans_cost, self.driving_range = vehi_info
         
     def check_goods(self, x):
         return self.volume + x.volume <= self.max_volume and self.weight + x.weight <= self.max_weight
@@ -61,7 +66,7 @@ class RouteAgent:
             pass
         else:
             result = self.check_route(x, pos)
-            if(result[1] and self.tot_dist - self.before_charge + result[0][1] <= driving_range):
+            if(result[1] and self.tot_dist - self.before_charge + result[0][1] <= self.driving_range):
                 insert_pos, extra_cost = result[0]
         return (insert_pos, extra_cost)
 
@@ -291,7 +296,7 @@ class RouteAgent:
     def choose_charging(self):
         # take charging into consideration
         update_dist = 0
-        if(self.tot_dist <= driving_range):
+        if(self.tot_dist <= self.driving_range):
             return update_dist
         pre_dist, flo_list = self.init_dist_list()
         for i in reversed(range(len(self.cList) - 1)):           
@@ -299,7 +304,7 @@ class RouteAgent:
             nxt = self.cList[i + 1]
             charge_info = self.chargeChoice(ths[0], nxt[0])
             dist_l, dist_r = charge_info[1]
-            if(pre_dist[i] + dist_l > driving_range or dist_r + flo_list[i + 1] > driving_range \
+            if(pre_dist[i] + dist_l > self.driving_range or dist_r + flo_list[i + 1] > self.driving_range \
                 or ths[2] + charge_info[2] > nxt[1]):
                 self.time_schedule_as_late_as_possible(i)
             else:

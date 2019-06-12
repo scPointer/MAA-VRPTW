@@ -1,9 +1,8 @@
 unload_tm = 30
-driving_range = 120000
 charge_tm = 30
 charge_cost = 50
-iveco_info = (12, 2, 12. /1000) # max_weight, max_volume, unit_trans_cost
-truck_info = (16 , 2.5, 14. / 1000) # max_weight, max_volume, unit_trans_cost
+iveco_info = (12, 2, 12. /1000, 100000) # max_weight, max_volume, unit_trans_cost, drving_range
+truck_info = (16 , 2.5, 14. / 1000, 120000) # max_weight, max_volume, unit_trans_cost, driving_range
 wait_cost = 24. / 60
 depot_open_time = 8.
 vehicle_cost = 300.

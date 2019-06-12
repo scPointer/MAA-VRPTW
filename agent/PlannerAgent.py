@@ -43,12 +43,8 @@ class PlannerAgent(CenterNode):
                     self.tot_dist += extra_cost
                     break
             if(insert_pos == None):
-                self.routes.append(self.newRoute(iveco_info))
+                self.routes.append(self.newRoute(truck_info))
                 insert_pos, extra_cost = self.routes[-1].find_insert_pos(nd)
-                if(insert_pos == None):
-                    self.routes.pop()
-                    self.routes.append(self.newRoute(truck_info))
-                    insert_pos, extra_cost = self.routes[-1].find_insert_pos(nd)
                 self.routes[-1].insert(nd, (insert_pos, extra_cost))
                 self.tot_dist += extra_cost
         
@@ -58,6 +54,9 @@ class PlannerAgent(CenterNode):
         #    route.max_dist = 150000
         self.custAgents.sort(key = lambda nd: nd.id)
         self.custAgents.insert(0, None)
+        for route in self.routes:
+            if(route.tot_dist < truck_info[3]):
+                route.update(iveco_info)
     
     def print_solution(self, fileName):
         outputFile = open(fileName, 'w')
@@ -67,6 +66,11 @@ class PlannerAgent(CenterNode):
     def find_charging_station(self):
         for route in self.routes:
             self.tot_dist += route.choose_charging()
+            if(route.feasible == False):
+                route.update(truck_info)
+                route.feasible = True
+                self.tot_dist += route.choose_charging()
+
             while(route.feasible == False):
                 self.routes.append(self.newRoute(truck_info))
                 route.route_dividing(self.routes[-1])
