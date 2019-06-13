@@ -55,7 +55,7 @@ class PlannerAgent(CenterNode):
         self.custAgents.sort(key = lambda nd: nd.id)
         self.custAgents.insert(0, None)
         for route in self.routes:
-            if(route.tot_dist < truck_info[3]):
+            if(route.tot_dist < iveco_info[3]):
                 route.update(iveco_info)
     
     def print_solution(self, fileName):
